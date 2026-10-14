@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#073967">
+  <meta name="description" content="川昇叫貨系統：商品貨號快速叫貨、圖片叫貨單、離線保存與備份。">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="川昇叫貨">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png">
+  <link rel="apple-touch-icon" href="./assets/icon-192.png">
+  <link rel="stylesheet" href="./css/app.css">
+  <title>川昇叫貨系統</title>
+</head>
+<body>
+  <div id="app">
+    <header class="topbar"><div class="brand"><img src="./assets/icon-192.png" alt="" width="36" height="36"><div><strong>川昇叫貨系統</strong><small>單機離線 PWA</small></div></div><button class="icon-btn" aria-label="設定" data-action="go-settings">⚙</button></header>
+    <main class="main"><div class="loading">正在載入本機商品資料…</div></main>
+  </div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <input id="backup-import" type="file" accept="application/json,.json" hidden>
+  <input id="product-photo" type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,image/*" hidden>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

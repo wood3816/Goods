@@ -1,0 +1,12 @@
+{
+  "name":"川昇叫貨系統",
+  "short_name":"川昇叫貨",
+  "description":"單機離線貨號叫貨、商品圖片、PNG 圖片叫貨單",
+  "start_url":"./index.html",
+  "scope":"./",
+  "display":"standalone",
+  "background_color":"#f6f9fe",
+  "theme_color":"#073967",
+  "lang":"zh-Hant",
+  "icons":[{"src":"./assets/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},{"src":"./assets/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]
+}
