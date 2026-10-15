@@ -17,3 +17,15 @@
 .preview-item .photo{width:264px;height:270px;max-width:100%;padding:12px;flex-shrink:0}
 .preview-item .bigqty{align-self:flex-end;font-size:35px;line-height:1.2;font-weight:900;color:#073d74}
 @media(max-width:365px){.brand .company-logo{width:117px}.brand{gap:5px}.brand strong{font-size:15px}.brand small{font-size:9px}.topbar{padding:12px 10px}}
+
+/* v1.0.3: 商品庫圖片可直接點選上傳；不影響原本「查看」與編輯功能。 */
+.catalog-photo-upload,.detail-photo-upload{appearance:none;-webkit-appearance:none;position:relative;display:block;flex-shrink:0;margin:0;padding:0;border:0;background:transparent;color:inherit;cursor:pointer;touch-action:manipulation;}
+.catalog-photo-upload{width:70px;height:72px;border-radius:11px;}
+.catalog-photo-upload .photo{width:100%;height:100%;}
+.catalog-photo-upload .camera-corner,.detail-photo-upload .camera-corner{position:absolute;right:-4px;bottom:-4px;display:grid;place-items:center;width:28px;height:28px;border-radius:999px;background:#086ac0;border:2px solid #fff;color:#fff;font-size:13px;line-height:1;box-shadow:0 2px 6px #143d642a;pointer-events:none;}
+.catalog-photo-upload:focus-visible,.detail-photo-upload:focus-visible{outline:3px solid #1488dd;outline-offset:3px;}
+.detail-photo-upload{width:min(100%,300px);height:280px;margin:0 auto 12px;border-radius:11px;}
+.detail-photo-upload .photo{width:100%;height:100%;}
+.detail-photo-upload .camera-corner{width:34px;height:34px;font-size:17px;right:7px;bottom:7px;}
+.photo-hint{margin:0 0 14px;}
+@media(max-width:420px){.catalog-photo-upload{width:65px;height:67px;}}

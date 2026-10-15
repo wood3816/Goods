@@ -49,4 +49,26 @@ export async function replaceBackup(payload){
   tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('交易中止'));
  });
 }
+// 照片與貨號關聯以單一交易儲存；寫入失敗時保留既有照片及商品資料。
+export async function saveProductPhoto(code,blob){
+ const db=await openDB();
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction(['products','images'],'readwrite');
+  const products=tx.objectStore('products'),images=tx.objectStore('images');
+  let imageId=null,problem=null;
+  const query=products.get(code);
+  query.onsuccess=()=>{
+   try{
+    const rec=query.result;
+    if(!rec)throw new Error('貨品已不存在，無法儲存照片');
+    imageId=rec.imageId||`img_${globalThis.crypto?.randomUUID?.()||Date.now()+'_'+Math.random().toString(36).slice(2)}`;
+    const updatedAt=now();
+    images.put({id:imageId,blob,updatedAt});
+    products.put({...rec,imageId,updatedAt});
+   }catch(e){problem=e;tx.abort();}
+  };
+  tx.oncomplete=()=>resolve(imageId);
+  tx.onabort=()=>reject(problem||tx.error||new Error('照片儲存失敗，舊照片未變更'));
+ });
+}
 export const supplierDefault=seedSupplier;
