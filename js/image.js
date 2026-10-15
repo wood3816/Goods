@@ -15,11 +15,22 @@ async function bitmapForBlob(blob){
   const u=URL.createObjectURL(blob),img=new Image();img.onload=()=>{URL.revokeObjectURL(u);resolve(img)};img.onerror=()=>{URL.revokeObjectURL(u);resolve(null)};img.src=u;
  });
 }
+// 將來源照片等比例置入固定區域，完整顯示四邊；絕不採用 cover 或來源裁切。
+// 同一算法支援直式、橫式、正方形，也用於最終輸出的 PNG（不是只改網頁 CSS）。
+export function containedRect(sourceWidth,sourceHeight,x,y,width,height,inset=0){
+ const values=[sourceWidth,sourceHeight,x,y,width,height,inset];
+ if(values.some(v=>!Number.isFinite(v))||sourceWidth<=0||sourceHeight<=0||width<=0||height<=0)return null;
+ const padding=Math.max(0,Math.min(inset,(Math.min(width,height)-1)/2));
+ const availableWidth=width-padding*2,availableHeight=height-padding*2;
+ const scale=Math.min(availableWidth/sourceWidth,availableHeight/sourceHeight);
+ const drawWidth=sourceWidth*scale,drawHeight=sourceHeight*scale;
+ return {x:x+(width-drawWidth)/2,y:y+(height-drawHeight)/2,width:drawWidth,height:drawHeight};
+}
 function photo(ctx,img,x,y,w,h){
  if(!img)return;
- const scale=Math.min(w/img.width,h/img.height);
- const dw=img.width*scale,dh=img.height*scale;
- ctx.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh);
+ const rect=containedRect(img.width||img.naturalWidth,img.height||img.naturalHeight,x,y,w,h,6);
+ if(!rect)return;
+ ctx.drawImage(img,rect.x,rect.y,rect.width,rect.height);
 }
 function imgToBlob(canvas){return new Promise((resolve,reject)=>{canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('圖片產生失敗，請檢查裝置儲存空間。')),'image/png');});}
 // 每頁不超過 13 項，避免 iOS 長圖像素與記憶體限制。
