@@ -1,8 +1,8 @@
-/* 川昇叫貨系統 v1.0.1。禁止強制更新與無限重整：更新僅在使用者點選套用時跳過等待。 */
-const CACHE_NAME = 'chuansheng-orders-shell-v1.0.1';
+/* 川昇叫貨系統 v1.0.2。禁止強制更新與無限重整：更新僅在使用者點選套用時跳過等待。 */
+const CACHE_NAME = 'chuansheng-orders-shell-v1.0.2';
 const APP_FILES = [
  './','./index.html','./css/app.css','./js/db.js','./js/app.js','./js/image.js',
- './manifest.webmanifest','./version.json','./assets/icon-192.png','./assets/icon-512.png'
+ './manifest.webmanifest','./version.json','./assets/icon-192.png','./assets/icon-512.png','./assets/company-logo.png'
 ];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_FILES)));});
 self.addEventListener('activate',event=>{

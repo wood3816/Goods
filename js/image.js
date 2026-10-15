@@ -26,27 +26,34 @@ export function containedRect(sourceWidth,sourceHeight,x,y,width,height,inset=0)
  const drawWidth=sourceWidth*scale,drawHeight=sourceHeight*scale;
  return {x:x+(width-drawWidth)/2,y:y+(height-drawHeight)/2,width:drawWidth,height:drawHeight};
 }
-function photo(ctx,img,x,y,w,h){
+function photo(ctx,img,x,y,w,h,inset=6){
  if(!img)return;
- const rect=containedRect(img.width||img.naturalWidth,img.height||img.naturalHeight,x,y,w,h,6);
+ const rect=containedRect(img.width||img.naturalWidth,img.height||img.naturalHeight,x,y,w,h,inset);
  if(!rect)return;
  ctx.drawImage(img,rect.x,rect.y,rect.width,rect.height);
 }
 function imgToBlob(canvas){return new Promise((resolve,reject)=>{canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('圖片產生失敗，請檢查裝置儲存空間。')),'image/png');});}
+// 公司原版 LOGO 經透明邊緣裁整後的影像（仍是使用者提供的同一張原始圖）。
+const logoURL = new URL('../assets/company-logo.png', import.meta.url).href;
+async function loadCompanyLogo(){
+ return new Promise(resolve=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>resolve(null);img.src=logoURL;});
+}
 // 每頁不超過 13 項，避免 iOS 長圖像素與記憶體限制。
 export async function renderOrderPngPages(order,readImage){
  const perPage=13,groups=[];
  for(let i=0;i<order.items.length;i+=perPage)groups.push(order.items.slice(i,i+perPage));
  const output=[];
+ const companyLogo=await loadCompanyLogo();
  for(let page=0;page<groups.length;page++){
-  const items=groups[page],W=1080,rowH=170,headerH=385,footerH=145,H=headerH+items.length*rowH+footerH;
+  const items=groups[page],W=1080,rowH=458,headerH=385,footerH=145,H=headerH+items.length*rowH+footerH;
   const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
   const c=canvas.getContext('2d',{alpha:false});if(!c)throw Error('此瀏覽器不支援圖片輸出');
   c.fillStyle='#fff';c.fillRect(0,0,W,H);
   c.fillStyle=COLOR.navy;c.fillRect(0,0,W,114);
-  // 不使用外部圖片或字體：離線也能產生一致的表單。
-  c.beginPath();c.strokeStyle='#61d6ff';c.lineWidth=8;c.moveTo(46,68);c.bezierCurveTo(72,32,100,42,120,52);c.bezierCurveTo(148,70,170,68,198,37);c.stroke();
-  text(c,'川昇淨水有限公司',224,77,'bold 43px sans-serif','#ffffff');
+  // 公司原始 LOGO 由同站 assets 載入（亦列入離線快取），完整顯示於頁首。
+  if(companyLogo){photo(c,companyLogo,45,15,550,99);}
+  else text(c,'川昇淨水',58,78,'bold 45px sans-serif','#ffffff');
+  text(c,'叫貨單',1015,77,'bold 44px sans-serif','#ffffff','right');
   text(c,'叫 貨 單',W/2,185,'bold 58px sans-serif',COLOR.navy,'center');
   text(c,'供應商：'+(order.supplier||'未指定'),56,247,'27px sans-serif');
   text(c,'叫貨日期：'+(order.date||''),56,296,'27px sans-serif');
@@ -56,17 +63,17 @@ export async function renderOrderPngPages(order,readImage){
   for(let i=0;i<items.length;i++){
    const entry=items[i],y=headerH+i*rowH;
    if(i%2===0){c.fillStyle='#f5faff';c.fillRect(40,y,1000,rowH-2);}
-   rounded(c,70,y+14,150,140,12,'#eef4f9',COLOR.border);
+   // v1.0.2 商品圖片顯示區：原 150×140 -> 450×420（寬高各 3 倍）
+   rounded(c,70,y+14,450,420,16,'#ffffff',COLOR.border);
    let bitmap=null;
    if(entry.imageId){try{bitmap=await bitmapForBlob(await readImage(entry.imageId))}catch{}}
-   if(bitmap){photo(c,bitmap,76,y+20,138,128);if(bitmap.close)bitmap.close();}
+   if(bitmap){photo(c,bitmap,88,y+32,414,384,18);if(bitmap.close)bitmap.close();}
    else{
-    text(c,'尚無商品照片',145,y+80,'bold 20px sans-serif','#aa5d2f','center');
-    text(c,entry.code,145,y+112,'bold 24px sans-serif',COLOR.navy,'center');
+    text(c,'尚無商品照片',295,y+208,'bold 32px sans-serif','#aa5d2f','center');
+    text(c,entry.code,295,y+260,'bold 36px sans-serif',COLOR.navy,'center');
    }
-   // 這裡只顯示商品圖、數量；小字貨號讓供應商可核對／照片缺漏時可辨識。
-   text(c,entry.code,258,y+91,'bold 26px sans-serif',COLOR.muted);
-   text(c,`${entry.qty} ${entry.unit||'支'}`,1004,y+104,'bold 55px sans-serif',COLOR.navy,'right');
+   // 單個商品列只顯示完整圖片與大字數量；缺圖時於佔位框顯示貨號以免認錯。
+   text(c,`${entry.qty} ${entry.unit||'支'}`,1004,y+258,'bold 83px sans-serif',COLOR.navy,'right');
   }
   const footY=headerH+items.length*rowH+18;
   c.strokeStyle=COLOR.border;c.beginPath();c.moveTo(40,footY);c.lineTo(1040,footY);c.stroke();
