@@ -1,6 +1,6 @@
 import {openDB,all,get,put,remove,getKV,setKV,replaceBackup,saveProductPhoto,deleteOrders,supplierDefault} from './db.js';
 import {renderOrderPngPages,saveBlob,paginateOrderItems,ORDER_ITEMS_PER_PAGE} from './image.js';
-const VERSION='1.0.5';
+const VERSION='1.0.6';
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dateStr=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
 const dateView=s=>(s||'').replaceAll('-','/');
@@ -40,7 +40,7 @@ function previewPage(){
  const pages=paginateOrderItems(order.items);
  return `${btn('← 返回','preview-back','back')}${heading('叫貨圖片預覽','2 行 × 3 列，每張最多 6 項商品')}
  <div class="notice ${missing.length?'warning':''}">${missing.length?`有 ${missing.length} 項沒有實際照片，輸出將顯示「圖片待上傳」及貨號。`:'商品照片採用資料庫中的原始比例完整顯示。'} 每張 PNG 採 2 行 × 3 列；本單共 ${order.items.length} 項，將產生 ${pages.length} 張圖片。</div>
- ${pages.map((items,page)=>`<div class="preview-paper"><div class="preview-title"><img class="preview-company-logo" src="./assets/company-logo.png" alt="川昇淨水公司 LOGO"><strong>叫貨單</strong></div>
+ ${pages.map((items,page)=>`<div class="preview-paper"><div class="preview-title"><img class="preview-company-logo" src="./assets/company-logo-export.png" alt="川昇淨水公司 LOGO"></div>
  <div class="preview-meta"><div>供應商：${esc(order.supplier)}</div><div>叫貨日期：${esc(dateView(order.date))}</div><div>單號：${esc(order.id)}<span class="preview-page-no">第 ${page+1} / ${pages.length} 張</span></div></div>
  <div class="preview-grid">${items.map(it=>{const p={...(product(it.code)||it),imageId:it.imageId||product(it.code)?.imageId||null};return `<div class="preview-product">${iconImage(p)}<strong class="preview-product-code">${esc(it.code)}</strong><div class="preview-product-name" title="${esc(it.name||'')}">${esc(it.name||'')}</div><div class="preview-product-qty">${esc(it.qty)} <span>${esc(it.unit||'支')}</span></div></div>`;}).join('')}</div>
  <div class="preview-foot">本張 ${items.length} 項 · ${total(items)} 件</div><div class="brand-preview">川昇淨水・請依圖片、貨號與數量備貨</div></div>`).join('')}

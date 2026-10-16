@@ -71,3 +71,8 @@
 .preview-product-qty span{font-size:10px;font-weight:750}
 .preview-foot{padding-top:10px;font-size:12px}
 @media (max-width:380px){.preview-paper{padding:8px}.preview-grid{gap:4px}.preview-product{padding:3px 2px 7px}.preview-product-name{font-size:9px}.preview-product-qty{font-size:18px}.preview-company-logo{height:41px}}
+
+/* v1.0.6：PNG 預覽頁首不畫白底，LOGO 靠左直接融入深藍底。 */
+.preview-title{justify-content:flex-start;background:#0a3560;}
+.preview-company-logo{width:auto;max-width:80%;height:56px;object-fit:contain;object-position:left center;background:transparent;}
+@media(max-width:380px){.preview-company-logo{height:44px;}}
