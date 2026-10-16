@@ -38,6 +38,20 @@ export async function all(store){const db=await openDB();return request(db.trans
 export async function get(store,key){const db=await openDB();return request(db.transaction(store,'readonly').objectStore(store).get(key));}
 export async function put(store,value){const db=await openDB();return request(db.transaction(store,'readwrite').objectStore(store).put(value));}
 export async function remove(store,key){const db=await openDB();return request(db.transaction(store,'readwrite').objectStore(store).delete(key));}
+// 多筆歷史紀錄以同一筆交易刪除，失敗時整筆回滾；不碰商品或圖片。
+export async function deleteOrders(ids){
+ const keys=[...new Set(ids)];
+ if(!keys.length||keys.some(id=>typeof id!=='string'||!id.trim()))throw Error('刪除訂單的編號不正確');
+ const db=await openDB();
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction('orders','readwrite');
+  const store=tx.objectStore('orders');
+  for(const id of keys)store.delete(id);
+  tx.oncomplete=()=>resolve(keys.length);
+  tx.onerror=()=>reject(tx.error||new Error('歷史紀錄刪除失敗'));
+  tx.onabort=()=>reject(tx.error||new Error('刪除操作已中止，資料未變更'));
+ });
+}
 export async function getKV(key,fallback=null){return (await get('kv',key))?.value??fallback;}
 export async function setKV(key,value){return put('kv',{key,value});}
 export async function replaceBackup(payload){

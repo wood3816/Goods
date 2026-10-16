@@ -1,22 +1,34 @@
-// 圖片式叫貨單：圖片 + 數量為每項唯一主要內容；沒有照片時醒目提示，不能誤當成實物照。
+// 川昇叫貨系統 v1.0.5：PNG 叫貨單固定 2 行 × 3 列，一頁最多 6 項。
+// 每個圖片顯示框維持 v1.0.4 的 450 × 420 px，大圖不裁切、不拉伸。
 const COLOR={navy:'#0a3560',blue:'#0e74cc',light:'#f1f7fc',border:'#d7e6f2',muted:'#58728a'};
-function text(ctx,str,x,y,font,color=COLOR.navy,align='left'){
- ctx.save();ctx.fillStyle=color;ctx.font=font;ctx.textAlign=align;ctx.fillText(String(str),x,y);ctx.restore();
+export const ORDER_ITEMS_PER_PAGE=6;
+export function paginateOrderItems(items){
+ if(!Array.isArray(items))return [];
+ const pages=[];
+ for(let i=0;i<items.length;i+=ORDER_ITEMS_PER_PAGE)pages.push(items.slice(i,i+ORDER_ITEMS_PER_PAGE));
+ return pages;
+}
+function text(ctx,str,x,y,font,color=COLOR.navy,align='left',maxWidth){
+ ctx.save();ctx.fillStyle=color;ctx.font=font;ctx.textAlign=align;
+ ctx.fillText(String(str??''),x,y,...(maxWidth?[maxWidth]:[]));ctx.restore();
 }
 function rounded(ctx,x,y,w,h,r,fill,stroke){
- ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke();}
+ ctx.beginPath();ctx.roundRect(x,y,w,h,r);
+ if(fill){ctx.fillStyle=fill;ctx.fill();}
+ if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke();}
 }
 async function bitmapForBlob(blob){
  if(!blob)return null;
  if(typeof createImageBitmap==='function'){
-  try{return await createImageBitmap(blob)}catch{}
+  try{return await createImageBitmap(blob);}catch{}
  }
- return new Promise((resolve)=>{
-  const u=URL.createObjectURL(blob),img=new Image();img.onload=()=>{URL.revokeObjectURL(u);resolve(img)};img.onerror=()=>{URL.revokeObjectURL(u);resolve(null)};img.src=u;
+ return new Promise(resolve=>{
+  const url=URL.createObjectURL(blob),img=new Image();
+  img.onload=()=>{URL.revokeObjectURL(url);resolve(img);};
+  img.onerror=()=>{URL.revokeObjectURL(url);resolve(null);};img.src=url;
  });
 }
-// 將來源照片等比例置入固定區域，完整顯示四邊；絕不採用 cover 或來源裁切。
-// 同一算法支援直式、橫式、正方形，也用於最終輸出的 PNG（不是只改網頁 CSS）。
+// 將照片依原始比例完整置入顯示區，不進行裁切。
 export function containedRect(sourceWidth,sourceHeight,x,y,width,height,inset=0){
  const values=[sourceWidth,sourceHeight,x,y,width,height,inset];
  if(values.some(v=>!Number.isFinite(v))||sourceWidth<=0||sourceHeight<=0||width<=0||height<=0)return null;
@@ -29,56 +41,78 @@ export function containedRect(sourceWidth,sourceHeight,x,y,width,height,inset=0)
 function photo(ctx,img,x,y,w,h,inset=6){
  if(!img)return;
  const rect=containedRect(img.width||img.naturalWidth,img.height||img.naturalHeight,x,y,w,h,inset);
- if(!rect)return;
- ctx.drawImage(img,rect.x,rect.y,rect.width,rect.height);
+ if(rect)ctx.drawImage(img,rect.x,rect.y,rect.width,rect.height);
 }
-function imgToBlob(canvas){return new Promise((resolve,reject)=>{canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('圖片產生失敗，請檢查裝置儲存空間。')),'image/png');});}
-// 公司原版 LOGO 經透明邊緣裁整後的影像（仍是使用者提供的同一張原始圖）。
-const logoURL = new URL('../assets/company-logo.png', import.meta.url).href;
+function imgToBlob(canvas){return new Promise((resolve,reject)=>{
+ canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('圖片產生失敗，請檢查裝置儲存空間。')),'image/png');
+});}
+const logoURL=new URL('../assets/company-logo.png',import.meta.url).href;
 async function loadCompanyLogo(){
  return new Promise(resolve=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>resolve(null);img.src=logoURL;});
 }
-// 每頁不超過 13 項，避免 iOS 長圖像素與記憶體限制。
+// 中英文品名自動斷行：至多兩行，超長以省略號顯示，不讓文字超出商品格。
+function productNameLines(ctx,name,maxWidth,maxLines=2){
+ ctx.save();ctx.font='bold 30px "Noto Sans TC", "Microsoft JhengHei", sans-serif';
+ const result=[];let line='';
+ for(const char of String(name||'')){
+  if(ctx.measureText(line+char).width<=maxWidth){line+=char;continue;}
+  if(line){result.push(line);line=char;}else{result.push(char);line='';}
+  if(result.length===maxLines){
+   // 經過截斷的內容一律以省略號標示。
+   let last=result[maxLines-1];while(last&&ctx.measureText(last+'…').width>maxWidth)last=last.slice(0,-1);
+   result[maxLines-1]=last+'…';ctx.restore();return result;
+  }
+ }
+ if(line)result.push(line);
+ ctx.restore();return result.length?result:['未命名商品'];
+}
+function drawCard(c,entry,x,y,w,h,bitmap){
+ rounded(c,x,y,w,h,16,'#ffffff',COLOR.border);
+ const imgW=450,imgH=420,imgX=x+(w-imgW)/2,imgY=y+21;
+ rounded(c,imgX,imgY,imgW,imgH,12,'#ffffff','#deebf5');
+ if(bitmap)photo(c,bitmap,imgX,imgY,imgW,imgH,18);
+ else{
+  text(c,'圖片待上傳',x+w/2,imgY+198,'bold 32px sans-serif','#a15b34','center');
+  text(c,String(entry.code||''),x+w/2,imgY+252,'bold 32px sans-serif',COLOR.navy,'center',imgW-30);
+ }
+ text(c,String(entry.code||''),x+w/2,y+485,'bold 31px sans-serif',COLOR.navy,'center',w-34);
+ const lines=productNameLines(c,entry.name||'',w-38);
+ lines.forEach((line,i)=>text(c,line,x+w/2,y+532+i*37,'bold 30px sans-serif',COLOR.navy,'center',w-38));
+ text(c,`${entry.qty} ${entry.unit||'支'}`,x+w/2,y+h-34,'bold 68px sans-serif',COLOR.navy,'center',w-40);
+}
+// 為避免 iOS 對超長 Canvas 的記憶體限制，每頁固定最多六項、輸出獨立 PNG。
 export async function renderOrderPngPages(order,readImage){
- const perPage=13,groups=[];
- for(let i=0;i<order.items.length;i+=perPage)groups.push(order.items.slice(i,i+perPage));
- const output=[];
+ const groups=paginateOrderItems(order.items),output=[];
  const companyLogo=await loadCompanyLogo();
  for(let page=0;page<groups.length;page++){
-  const items=groups[page],W=1080,rowH=458,headerH=385,footerH=145,H=headerH+items.length*rowH+footerH;
+  const items=groups[page];
+  // 1800 px 讓三欄各保留原版的 450 × 420 px 照片顯示框。
+  const W=1800,margin=55,gapX=22,headerH=360,rowH=688,rowGap=22,footerH=110;
+  const cardW=(W-margin*2-gapX*2)/3,H=headerH+rowH*2+rowGap+footerH;
   const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
   const c=canvas.getContext('2d',{alpha:false});if(!c)throw Error('此瀏覽器不支援圖片輸出');
-  c.fillStyle='#fff';c.fillRect(0,0,W,H);
-  c.fillStyle=COLOR.navy;c.fillRect(0,0,W,114);
-  // 公司原始 LOGO 由同站 assets 載入（亦列入離線快取），完整顯示於頁首。
-  if(companyLogo){photo(c,companyLogo,45,15,550,99);}
-  else text(c,'川昇淨水',58,78,'bold 45px sans-serif','#ffffff');
-  text(c,'叫貨單',1015,77,'bold 44px sans-serif','#ffffff','right');
-  text(c,'叫 貨 單',W/2,185,'bold 58px sans-serif',COLOR.navy,'center');
-  text(c,'供應商：'+(order.supplier||'未指定'),56,247,'27px sans-serif');
-  text(c,'叫貨日期：'+(order.date||''),56,296,'27px sans-serif');
-  text(c,'單號：'+order.id,56,343,'23px sans-serif',COLOR.muted);
-  if(groups.length>1)text(c,`第 ${page+1} / ${groups.length} 張`,W-56,343,'23px sans-serif',COLOR.muted,'right');
-  c.strokeStyle=COLOR.border;c.lineWidth=3;c.beginPath();c.moveTo(40,370);c.lineTo(1040,370);c.stroke();
+  c.fillStyle='#ffffff';c.fillRect(0,0,W,H);
+  c.fillStyle=COLOR.navy;c.fillRect(0,0,W,148);
+  // 原公司 LOGO 為透明底，放在白色底板避免與深色背景混合影響辨識。
+  rounded(c,35,16,820,116,12,'#ffffff',null);
+  if(companyLogo)photo(c,companyLogo,54,20,780,106,3);
+  else text(c,'川昇淨水',68,100,'bold 66px sans-serif',COLOR.navy);
+  text(c,'叫貨單',W-68,102,'bold 76px sans-serif','#ffffff','right');
+  text(c,`供應商：${order.supplier||'未指定'}`,margin,219,'bold 38px sans-serif',COLOR.navy,'left',W-110);
+  text(c,`叫貨日期：${order.date||''}`,margin,273,'32px sans-serif',COLOR.navy);
+  text(c,`單號：${order.id||''}`,margin,320,'30px sans-serif',COLOR.muted,'left',W-450);
+  text(c,`第 ${page+1} / ${groups.length} 張`,W-margin,320,'bold 30px sans-serif',COLOR.muted,'right');
   for(let i=0;i<items.length;i++){
-   const entry=items[i],y=headerH+i*rowH;
-   if(i%2===0){c.fillStyle='#f5faff';c.fillRect(40,y,1000,rowH-2);}
-   // v1.0.2 商品圖片顯示區：原 150×140 -> 450×420（寬高各 3 倍）
-   rounded(c,70,y+14,450,420,16,'#ffffff',COLOR.border);
+   const entry=items[i],col=i%3,row=Math.floor(i/3);
+   const x=margin+col*(cardW+gapX),y=headerH+row*(rowH+rowGap);
    let bitmap=null;
-   if(entry.imageId){try{bitmap=await bitmapForBlob(await readImage(entry.imageId))}catch{}}
-   if(bitmap){photo(c,bitmap,88,y+32,414,384,18);if(bitmap.close)bitmap.close();}
-   else{
-    text(c,'尚無商品照片',295,y+208,'bold 32px sans-serif','#aa5d2f','center');
-    text(c,entry.code,295,y+260,'bold 36px sans-serif',COLOR.navy,'center');
-   }
-   // 單個商品列只顯示完整圖片與大字數量；缺圖時於佔位框顯示貨號以免認錯。
-   text(c,`${entry.qty} ${entry.unit||'支'}`,1004,y+258,'bold 83px sans-serif',COLOR.navy,'right');
+   if(entry.imageId){try{bitmap=await bitmapForBlob(await readImage(entry.imageId));}catch{}}
+   try{drawCard(c,entry,x,y,cardW,rowH,bitmap);}finally{if(bitmap?.close)bitmap.close();}
   }
-  const footY=headerH+items.length*rowH+18;
-  c.strokeStyle=COLOR.border;c.beginPath();c.moveTo(40,footY);c.lineTo(1040,footY);c.stroke();
-  text(c,`合計：${items.reduce((s,x)=>s+Number(x.qty||0),0)} 件`,1005,footY+53,'bold 30px sans-serif',COLOR.navy,'right');
-  text(c,'川昇淨水・請依商品圖片與數量備貨',W/2,H-32,'22px sans-serif',COLOR.muted,'center');
+  const footerY=H-footerH+19;
+  c.strokeStyle=COLOR.border;c.lineWidth=3;c.beginPath();c.moveTo(margin,footerY);c.lineTo(W-margin,footerY);c.stroke();
+  text(c,`本張 ${items.length} 項 / ${items.reduce((s,x)=>s+Number(x.qty||0),0)} 件`,margin,footerY+48,'bold 30px sans-serif',COLOR.navy);
+  text(c,'川昇淨水・請依圖片、貨號與數量備貨',W-margin,footerY+48,'28px sans-serif',COLOR.muted,'right');
   output.push({name:`叫貨單_${order.id}${groups.length>1?`_第${page+1}張`:''}.png`,blob:await imgToBlob(canvas)});
  }
  return output;
