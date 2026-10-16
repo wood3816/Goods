@@ -76,3 +76,8 @@
 .preview-title{justify-content:flex-start;background:#0a3560;}
 .preview-company-logo{width:auto;max-width:80%;height:56px;object-fit:contain;object-position:left center;background:transparent;}
 @media(max-width:380px){.preview-company-logo{height:44px;}}
+
+/* v1.0.7：PNG 預覽頁首的公司 LOGO 水平置中，與實際 PNG 輸出一致。 */
+.preview-title{display:flex;align-items:center;justify-content:center;text-align:center;background:#0a3560;}
+.preview-company-logo{display:block;max-width:80%;width:auto;height:56px;object-fit:contain;object-position:center center;margin:0 auto;background:transparent;}
+@media(max-width:380px){.preview-company-logo{height:44px;}}

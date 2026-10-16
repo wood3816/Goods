@@ -1,6 +1,6 @@
 import {openDB,all,get,put,remove,getKV,setKV,replaceBackup,saveProductPhoto,deleteOrders,supplierDefault} from './db.js';
 import {renderOrderPngPages,saveBlob,paginateOrderItems,ORDER_ITEMS_PER_PAGE} from './image.js';
-const VERSION='1.0.6';
+const VERSION='1.0.7';
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dateStr=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
 const dateView=s=>(s||'').replaceAll('-','/');

@@ -1,4 +1,4 @@
-// 川昇叫貨系統 v1.0.6：PNG 叫貨單固定 2 行 × 3 列，一頁最多 6 項。
+// 川昇叫貨系統 v1.0.7：PNG 叫貨單固定 2 行 × 3 列；頁首公司 LOGO 水平置中。
 // 每個圖片顯示框維持 v1.0.4 的 450 × 420 px，大圖不裁切、不拉伸。
 const COLOR={navy:'#0a3560',blue:'#0e74cc',light:'#f1f7fc',border:'#d7e6f2',muted:'#58728a'};
 export const ORDER_ITEMS_PER_PAGE=6;
@@ -93,13 +93,13 @@ export async function renderOrderPngPages(order,readImage){
   const c=canvas.getContext('2d',{alpha:false});if(!c)throw Error('此瀏覽器不支援圖片輸出');
   c.fillStyle='#ffffff';c.fillRect(0,0,W,H);
   c.fillStyle=COLOR.navy;c.fillRect(0,0,W,148);
-  // v1.0.6：去除 LOGO 白色底板；裁去透明外緣的原廠 LOGO 直接融入頁首。
-  // 保持原圖長寬比，左對齊；不得把深色背景換成白底。
+  // v1.0.7：LOGO 保持透明與原圖比例，在 1800px 輸出頁面中精確水平置中。
+  // 不重繪、不裁切、不填白底；日期、單號與頁碼維持原位置。
   if(companyLogo){
    const logoHeight=122;
    const logoWidth=logoHeight*(companyLogo.naturalWidth||companyLogo.width)/(companyLogo.naturalHeight||companyLogo.height);
-   c.drawImage(companyLogo,48,12,logoWidth,logoHeight);
-  }else text(c,'川昇淨水',54,98,'bold 66px sans-serif','#ffffff');
+   c.drawImage(companyLogo,(W-logoWidth)/2,12,logoWidth,logoHeight);
+  }else text(c,'川昇淨水',W/2,98,'bold 66px sans-serif','#ffffff','center');
   // 按需求移除右上角「叫貨單」標題；日期、單號與頁碼沿用原位置。
   text(c,`供應商：${order.supplier||'未指定'}`,margin,219,'bold 38px sans-serif',COLOR.navy,'left',W-110);
   text(c,`叫貨日期：${order.date||''}`,margin,273,'32px sans-serif',COLOR.navy);
